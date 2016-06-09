@@ -1,5 +1,7 @@
 import zmq
 import json
+import rospy
+from gazetracking.msg import PupilInfo, GazeInfo
 
 port = "5000"
 context = zmq.Context()
@@ -10,12 +12,12 @@ socket.connect("tcp://127.0.0.1:" + port)
 socket.setsockopt(zmq.SUBSCRIBE, '')
 
 # Create publishers
-pub_pupil = rospy.Publisher('/pupil_info', PupilInfo)
-pub_gaze = rospy.Publisher('/gaze_info', GazeInfo)
+pub_pupil = rospy.Publisher('/pupil_info', PupilInfo, queue_size=10)
+pub_gaze = rospy.Publisher('/gaze_info', GazeInfo, queue_size=10)
 
+rospy.loginfo("Starting pupil listener.")
 
-
-while True:
+while not rospy.is_shutdown():
 	# Receive JSON message from socket, convert it to Python dict
 	topic, msgstr = socket.recv_multipart()
 	msg = json.loads(msgstr)

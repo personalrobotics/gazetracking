@@ -1,0 +1,9 @@
+float32 timestamp
+uint32 index
+float32 confidence
+float32[] norm_pos
+float32 diameter
+string method
+float32[] ellipse_center
+float32[] ellipse_axis
+float32 ellipse_angle
