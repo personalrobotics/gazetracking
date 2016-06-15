@@ -5,9 +5,9 @@ project(gazetracking)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  message_generation
   rospy
   std_msgs
-  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -68,6 +68,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
+  gazetracking
 )
 
 ################################################
@@ -102,7 +103,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES gazetracking
-  CATKIN_DEPENDS message_generation rospy message_runtime
+  CATKIN_DEPENDS rospy std_msgs message_runtime
 #  DEPENDS 
 )
 
