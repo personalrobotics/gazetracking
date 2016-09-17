@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import zmq
 import json
 import rospy
@@ -28,7 +29,7 @@ def parse_pupil_pos(msg):
 
 		# Parse message data
 		outmsg.timestamp = m['timestamp']
-		outmsg.index = m['index']
+		#outmsg.index = m['index']
 		outmsg.confidence = m['confidence']
 		outmsg.norm_pos = m['norm_pos']
 		outmsg.diameter = m['diameter']
@@ -61,7 +62,7 @@ def parse_gaze_pos(msg):
 
 		# Parse message data
 		outmsg.timestamp = m['timestamp']
-		outmsg.index = m['index']
+		#outmsg.index = m['index']
 		outmsg.confidence = m['confidence']
 		outmsg.norm_pos = m['norm_pos']
 
