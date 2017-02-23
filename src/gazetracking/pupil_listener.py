@@ -1,16 +1,24 @@
 #!/usr/bin/env python
 import zmq
+from msgpack import loads
 import json
 import rospy
 from gazetracking.msg import PupilInfo, GazeInfo
 
-port = "5000"
 context = zmq.Context()
-socket = context.socket(zmq.SUB)
-socket.connect("tcp://127.0.0.1:" + port)
+# open a req port to talk to pupil
+addr = '127.0.0.1'  # remote ip or localhost
+req_port = "50020"  # same as in the pupil remote gui
+req = context.socket(zmq.REQ)
+req.connect("tcp://{}:{}".format(addr, req_port))
+# ask for the sub port
+req.send_string('SUB_PORT')
+sub_port = req.recv_string()
 
-# Receive all messages
-socket.setsockopt(zmq.SUBSCRIBE, '')
+# open a sub port to listen to pupil
+sub = context.socket(zmq.SUB)
+sub.connect("tcp://{}:{}".format(addr, sub_port))
+sub.setsockopt_string(zmq.SUBSCRIBE, u'')
 
 # Create publishers
 pub_pupil = rospy.Publisher('/pupil_info', PupilInfo, queue_size=10)
@@ -24,30 +32,29 @@ def parse_pupil_pos(msg):
 	#msg may be a list of pupil positions
 	if len(msg) < 1: return -1
 
-	for m in msg:
-		outmsg = PupilInfo()
+	outmsg = PupilInfo()
 
-		# Parse message data
-		outmsg.timestamp = m['timestamp']
-		#outmsg.index = m['index']
-		outmsg.confidence = m['confidence']
-		outmsg.norm_pos = m['norm_pos']
-		outmsg.diameter = m['diameter']
-		outmsg.method = m['method']
+	# Parse message data
+	outmsg.timestamp = msg['timestamp']
+	#outmsg.index = m['index']
+	outmsg.confidence = msg['confidence']
+	outmsg.norm_pos = msg['norm_pos']
+	outmsg.diameter = msg['diameter']
+	outmsg.method = msg['method']
 
-		# Parse optional data
-		if 'ellipse' in msg:
-			outgoing.ellipse_center = m['ellipse']['center']
-			outgoing.ellipse_axis = m['ellipse']['axes']
-			outgoing.ellipse_angle = m['ellipse']['angle']
+	# Parse optional data
+	if 'ellipse' in msg:
+		outmsg.ellipse_center = msg['ellipse']['center']
+		outmsg.ellipse_axis = msg['ellipse']['axes']
+		outmsg.ellipse_angle = msg['ellipse']['angle']
 
-		# Warn that 3D data hasn't been parsed
-		# TODO: parse 3D data
-		if 'method' == '3d c++':
-			rospy.logwarn("3D information parser not yet implemented,\
-				3D data from JSON message not included in ROS message.")
+	# Warn that 3D data hasn't been parsed
+	# TODO: parse 3D data
+	if 'method' == '3d c++':
+		rospy.logwarn("3D information parser not yet implemented,\
+			3D data from JSON message not included in ROS message.")
 
-		return outmsg
+	return outmsg
 
 def parse_gaze_pos(msg):
 	''' Parse gaze_positions into a GazeInfo message.
@@ -57,16 +64,15 @@ def parse_gaze_pos(msg):
 	#msg may be a list of gaze positions
 	if len(msg) < 1: return -1
 	
-	for m in msg:
-		outmsg = GazeInfo()
+	outmsg = GazeInfo()
 
-		# Parse message data
-		outmsg.timestamp = m['timestamp']
-		#outmsg.index = m['index']
-		outmsg.confidence = m['confidence']
-		outmsg.norm_pos = m['norm_pos']
+	# Parse message data
+	outmsg.timestamp = msg['timestamp']
+	#outmsg.index = m['index']
+	outmsg.confidence = msg['confidence']
+	outmsg.norm_pos = msg['norm_pos']
 
-		return outmsg
+	return outmsg
 
 # Helper function that prints topic and message in a readable format
 def prettyprint(topic, msg):
@@ -80,21 +86,22 @@ if __name__ == "__main__":
 
 	rospy.init_node('pupillistener')
 
+	print "listening for socket message...."
 	while not rospy.is_shutdown():
-		# Receive JSON message from socket, convert it to Python dict
-		topic, msgstr = socket.recv_multipart()
-		msg = json.loads(msgstr)
-		# print prettyprint(topic, msg)
+		# Receive message from socket, convert it to Python dict
+		topic, msgstr = sub.recv_multipart()
+		msg = loads(msgstr)
+		# print "" + str(topic) + ": " + str(msg)
 
-		# Convert JSON message to ROS message
-		if topic == "pupil_positions":
+		# Convert message to ROS message
+		if "pupil" in topic:
 			rospy.logdebug("Reading pupil position: \n" + prettyprint(topic, msg))
 			
 			# Parse and publish
 			outmsg = parse_pupil_pos(msg)
 			if not outmsg == -1: pub_pupil.publish(outmsg)
 
-		elif topic == "gaze_positions":
+		elif topic == "gaze":
 			rospy.logdebug("Reading pupil position: \n" + prettyprint(topic, msg))
 			
 			# Parse and publish
